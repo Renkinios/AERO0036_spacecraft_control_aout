@@ -1,5 +1,13 @@
 function [Iw_pitch,max_v,max_power] = Compute_pitch(Omega_max, beta, R, N, c, Iyy, degree, time, h, dx, graph, print_result)
 
+
+color1 = '#FFD700';
+color2 = '#FF6600';
+color3 = '#04194E';
+color4 = '#759AAB';
+color5 = '#9E2A2B';
+
+
 delta_theta = deg2rad(degree/2);
 delta_t     = time/2;
 t           = (0:h:time);
@@ -33,7 +41,7 @@ if graph
     plot(t, H, 'LineWidth', 2);
     xlabel('Time [s]', 'Interpreter', 'latex');  % Utilisation de LaTeX pour l'axe des x
     ylabel('Angular momentum [Nm $\cdot$ s]', 'Interpreter', 'latex');  % Utilisation de LaTeX pour l'axe des y
-    grid on;
+    % grid on;
     
     % Définir le chemin du dossier et le créer s'il n'existe pas
     folder_path = 'figures/step_1_pitch';
@@ -166,7 +174,7 @@ voltage_circ = max_v - N*(sin(beta)*p(index) - Omega_2(index));
 max_power = (voltage_circ)^2/R/10^6;
 if print_result
     fprintf('>> Maximum voltage in Pitch : %f [KV] \n',abs(max_v/10^3));
-    fprintf('>> Maximum power in roll :    %f [MW] \n',max_power);
+    fprintf('>> Maximum power in Pitch   : %f [MW] \n',max_power);
 end
 
 if graph 

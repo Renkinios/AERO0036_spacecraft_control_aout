@@ -1,10 +1,8 @@
-function [Iw_roll,max_v,max_p] = Compute_roll(Ixx,beta,R,N,c,time_step,Omega_max,do_fig,print_result)
+function [Iw_roll,max_v,max_p] = Compute_roll(Ixx,beta,R,N,c,time_step,Omega_max, t_roll, dx_roll, degree_roll, do_fig,print_result)
 
-t_roll     = (0:time_step:10) ;      % Time to be able to change its orientation of 90 degrees in roll (+x) [s]
-t_r        = 10;                     % Total time for rotation in roll [s]
-dx_roll    = 5 ;                     % First interval time derivate
-delta_roll = deg2rad(45);            % Rotation angle in roll [deg]
-delta_t    = dx_roll;                % Time interval to perform the rotation [s] 
+
+delta_roll = deg2rad(degree_roll/2);           % Rotation angle in roll [deg]
+delta_t    = dx_roll;                          % Time interval to perform the rotation [s] 
 
 
 p_dot        = delta_roll*2/delta_t^2;         % Scalar .Angular acceleration of the spacecraft (cst) [rad s-2], first phase by kinetic equation
@@ -16,8 +14,8 @@ fprintf("H_max : %f \n",H_max);
 w_max_Rspeed = 7000*2*pi/60;                   % Scalar .Maximum rotation speed of the wheel [rad s-1], first phase
 
 % initial time
-t_1 = 0:time_step:5;              % Time for the first phase [s]
-t_2 = 5 + time_step:time_step:10; % Time for the second phase [s] add time becausse >
+t_1 = 0:time_step:2.5;              % Time for the first phase [s]
+t_2 = 2.5 + time_step:time_step:5; % Time for the second phase [s] add time becausse >
 t   = [t_1, t_2];                 % Total time for the roll [s]
 
 H_start = T * t_1;                     % Satellite momentum progile during the first phase [Nm s]
@@ -79,7 +77,7 @@ if do_fig
     print(gcf, save_path, '-dpdf', '-bestfit');
 end
 
-Omega_dot    = Omega_max * 2 * pi/60 / dx_roll;    % Scalar .Wheel angular acceleration (cst) [rad s-2], first phase
+Omega_dot    = Omega_max * 2 * pi/60 /dx_roll;    % Scalar .Wheel angular acceleration (cst) [rad s-2], first phase
 Iw_roll      = T/(2*Omega_dot*sin(beta));          % Scalar .Inertia of the wheel [kg m²], first phase
 % ? 
 

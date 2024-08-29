@@ -1,13 +1,13 @@
 %% AERO0036-1 Spacecraft control project: Design of a spacecraft attitude control system.
-do_fig = 0;       % Set to 1 to plot figures
-print_result = 1; % Set to 1 to print results
 
+clear variables
 close all
 clc
 set(0,'DefaultTextInterpreter','Latex');
 
 
-
+do_fig = 0;       % Set to 1 to plot figures
+print_result = 1; % Set to 1 to print results
 
 % Reaction wheel parameters
 Omega_max  = 7000;                % Reaction wheels have a maximum speed [RPM]
@@ -58,17 +58,17 @@ fprintf('#################################################### \n\n')
 
 
 
-R = 1.16;                       
-N = 41.9;
+R = 0.101;                       
+N = 169.8485;
 
 w.name = 'wheel';
 w.beta = beta;
-Iw_roll = Iw_roll*50;
+Iw_roll = Iw_roll * 50;
 Iw_pitch = Iw_pitch * 50;
 w.Iw_r = Iw_roll; 
 w.Iw_p = Iw_pitch;
-w.R = 30;
-w.N = 300;
+w.R = R;
+w.N = N;
 w.RPM_max = 7000;
 w.e_max = 10^6 % [V];
 
@@ -88,25 +88,9 @@ A_roll = [0,1;0,sin(beta)/Ixx*(N^2/R+c)*(-2*sin(beta)-Ixx/(Iw_roll*sin(beta)))];
 B_roll = [0;sin(beta)/Ixx*N/R];
 C_roll = [1,0];
 D_roll = 0;
+
+
 % initialisation 
-
-
-% [i,u] = lqr_meth(time_interval, A_roll, B_roll, C_roll, D_roll, x_0, wheel_inertias, spacecraft_inertias, motion);
-% % Forming Q & R matrices
-% Q = [i^2 0; 0 1];                                                                                     
-% R = 1/i;
-% % Computing the optimal gain
-% K = lqr(A_roll,B_roll,Q,R); 
-% % Forming the closed-loop systemn
-% sys = ss(A_roll-B_roll*K,B_roll,C_roll,D_roll);
-% % Computing the time evolution
-% [y,t,x] = initial(sys,x_0,time_interval);
-% % Computing the gain and phase margins
-% [Gm_roll,Pm_roll,~,~] = margin(sys);
-% fprintf("\nGain margin: %.2f.\n",Gm_roll);
-% fprintf("Phase margin : %.2f.\n\n",Pm_roll);
-% Initialization of the exponent associated to the weight of theta in
-% FindQR()
 n = 2;
 
 % Number of wheels:
@@ -119,10 +103,11 @@ nb_wheel = 2;
 theta_roll_final = deg2rad(90);
 x_0 = [theta_roll_final,0];
 
-i_r = FindQR_test(A_roll, B_roll, C_roll, D_roll, w, rot, n, nb_wheel, 1, 1);
+i_r = FindQR_minPower(A_roll, B_roll, C_roll, D_roll, w, rot, n, nb_wheel, 1, 1);
+% i_r = FindQR_test(A_roll, B_roll, C_roll, D_roll, w, rot, n, nb_wheel, 1, 1);
 
 Q_roll = [i_r^n,0;0,1];
-R_roll = 1/i_r;
+R_roll = i_r;
 K_roll = lqr(A_roll,B_roll,Q_roll,R_roll); 
 % Forming the closed-loop system
 sys = ss(A_roll-B_roll*K_roll,B_roll,C_roll,D_roll);
@@ -139,12 +124,12 @@ fprintf("Phase margin : %.2f.\n\n",Pm_roll);
 fprintf('Pitch LQR controller\n')
 fprintf('####################\n')
 
-rot.name = 'Pitch';
-rot.angle = 30;
+rot.name      = 'Pitch';
+rot.angle     = 30;
 rot.overshoot = 0.05; 
-rot.accuracy = 2/30;
-rot.Tf = 5;
-rot.t_goal = 2.5;
+rot.accuracy  = 2/30;
+rot.Tf        = 5;
+rot.t_goal    = 2.5;
 
 A_pitch = [0,1;0,sin(beta)/Iyy*(N^2/R+c)*(-2*sin(beta)-Iyy/(Iw_pitch*sin(beta)))];
 B_pitch = [0;sin(beta)/Iyy*N/R];
@@ -155,7 +140,7 @@ Q_pitch = [i_pitch^n,0;0,1];
 R_pitch = 1/i_pitch;
 K_pitch = lqr(A_pitch,B_pitch,Q_pitch,R_pitch);
 % Forming the closed-loop system
-sys = ss(A_pitch-B_pitch*K_pitch,B_pitch,C_pitch,D_roll);
+sys     = ss(A_pitch-B_pitch*K_pitch,B_pitch,C_pitch,D_roll);
 % Computing the time evolution
 [y,t,x] = initial(sys,x_0,time_step);
 % Computing the gain and phase margins

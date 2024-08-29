@@ -1,6 +1,6 @@
 %% FindQR Function: 
 
-function [i] = FindQR_test(A, B, C, D, w, rot, n, nb_wheel, print, save)
+function [i] = FindQR_minPower(A, B, C, D, w, rot, n, nb_wheel, print, save)
     time_step = 0.01;
     t = 0:time_step:rot.Tf;    % [s], time vector is fully stabilised with high pointing accuracy
     x0 = [rot.angle*pi/180;0]; % ICs, we consider that the target is 0� and that we 
@@ -92,7 +92,6 @@ function [i] = FindQR_test(A, B, C, D, w, rot, n, nb_wheel, print, save)
             %fprintf(">> Input voltage e = %f [V].\n",pw); 
             if abs(e) <= w.e_max
                 if pw <= w.RPM_max
-                
                     % Store the voltage required for 1 wheel
                     % Store the wheel rotation speed in RPM
                     % Store the solution y for the corresponding voltage
@@ -129,7 +128,10 @@ function [i] = FindQR_test(A, B, C, D, w, rot, n, nb_wheel, print, save)
     % the one that has the maximal input voltage.
     else
 
-        [e, index] = min(e_store);
+        [power, index] = min(power_store);
+        % [e, index] = min(e_store);
+
+        e = e_store(index);
         % index = (e==max(e));
 
         y = y_store(:,index)/pi*180;
@@ -141,7 +143,7 @@ function [i] = FindQR_test(A, B, C, D, w, rot, n, nb_wheel, print, save)
 
         pw = pw_store(index);
 
-        power = power_store(index);
+        % power = power_store(index);
 
         vol_circ = voltage_circ_store(:,index);
         [vol_circ, index_vol_circ] = max(vol_circ);

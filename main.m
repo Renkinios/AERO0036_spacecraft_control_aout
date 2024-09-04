@@ -153,32 +153,7 @@ fprintf("Phase margin : %.2f.\n\n",Pm_pitch);
 fprintf('Yaw LQR controller\n')
 fprintf('####################\n')
 
-rot.name = 'Yaw' ; 
-rot.angle = theta_yaw;
-rot.overshoot = 0; 
-rot.accuracy = 0.05;
-rot.Tf = 5;
-rot.I = Izz; 
 
-A_yaw = [0 , 1 ; 0 , cos(beta)/Izz*(N^2/R+c)*(-4*cos(beta)-4*Izz/(2*cos(beta)*(Iw_roll + Iw_pitch)))];
-B_yaw = [0;cos(beta)/Izz*(N/R)];
-C_yaw = [1 , 0];
-D_yaw = 0 ; 
 
-n = 3;
 
-nb_wheel = 4 ; 
-
-i_yaw = FindQR_test(A_yaw, B_yaw, C_yaw, D_yaw, w, rot, n, nb_wheel, 1, 1);
-
-Q_yaw = [i_yaw^n,0;0,1];
-R_yaw = 1/i_yaw ; 
-
-K_yaw = lqr(A_yaw,B_yaw,Q_yaw,R_yaw);
-sys_yaw = ss(A_yaw-B_yaw*K_yaw,B_yaw,C_yaw,D_yaw);
-% Computing the time evolution
-[y,t,x] = initial(sys_yaw,x_0,time_step);
-
-[Gm_yaw,Pm_yaw,~,~] = margin(sys_yaw);
-fprintf("\nGain margin: %.2f.\n",Gm_yaw);
-fprintf("Phase margin: %.2f.\n",Pm_yaw);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PID controllers %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

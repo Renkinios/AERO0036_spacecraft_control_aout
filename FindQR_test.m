@@ -1,11 +1,10 @@
 %% FindQR Function: 
 
-function [i] = FindQR_test(A, B, C, D, w, rot, n, nb_wheel, print, save)
+function [i] = FindQR_test(A, B, C, D, w, rot, n, nb_wheel, print, save, plot_figure)
     time_step = 0.01;
     t = 0:time_step:rot.Tf;    % [s], time vector is fully stabilised with high pointing accuracy
-    x0 = [rot.angle*pi/180;0]; % ICs, we consider that the target is 0� and that we 
+    x0 = [rot.angle*pi/180;rot.speed]; % ICs, we consider that the target is 0� and that we 
                                % start from rad2deg(rot.angle) with no initial angular velocity
-    
 
     u_store   = [];  % [V], total input voltage (for nb_wheel )
     e_store   = [];  % [V], input voltage (for 1 wheel)
@@ -19,21 +18,43 @@ function [i] = FindQR_test(A, B, C, D, w, rot, n, nb_wheel, print, save)
     power_store = [] ;
     voltage_circ_store = [] ;    
     test = [];
-    for i=1:300:1e4
+    for i=1:50:1e4
         Q       = [i^n 0;                      % The Q matrix is designed to give 
                     0 1];                      % importance to the precision of the movement                                                                    
         R       = 1/i;                         % Relative importance of the input voltage 
         K       = lqr(A,B,Q,R);                % Computation of the K matrix to modify the system 
         sys     = ss(A-B*K,B,C,D);             % New system
-        [y,t,x] = initial(sys,x0,t);           % Solving the system
+        if strcmp(rot.name, 'Yaw')
+            K       = lqr(A,B,Q,R);                % Computation of the K matrix to modify the system 
+            sys     = ss(A-B*K,B,C,D);             % New system
+            x0 = [0; 0] ;
+            pertubation = zeros(size(t));      % Entrée de commande par défaut à 0
+            pertubation(t <= 0.5) = 4000;   
+            % pertubation(t <= 0.5) = rot.angle*pi/180;    
+
+            [y, t, x] = lsim(sys, pertubation, t, x0);
+        else
+            [y, t, x] = initial(sys, x0, t);
+        end
+        % [y,t,x] = initial(sys,x0,t);           % Solving the system
 
         % Computation of the errors
         % y(end)
         % y(rot.t_goal/time_step + 1)
-        if rot.accuracy ~= 0
-            error_acc = (y(rot.t_goal/time_step + 1) <= rot.accuracy* x0(1) && y(rot.t_goal/time_step + 1) >= -rot.accuracy* x0(1));
-        else 
-            error_acc = 1;
+        if strcmp(rot.name, 'Yaw')
+            error_acc = (y(rot.t_goal/time_step + 1) <= 0.005 && y(rot.t_goal/time_step + 1) >= - 0.005);
+            % fprintf(y(rot.t_goal/time_step + 1), "\n");
+            % fprintf("Rotation cible à l'instant %.2f secondes : %.2f\n", rot.t_goal / time_step, y(rot.t_goal/time_step + 1));
+            % fprintf("X0 : %.2f\n", x0(1));
+
+            % fprintf("Error acc = %d\n", error_acc);
+        else
+
+            if rot.accuracy ~= 0
+                error_acc = (y(rot.t_goal/time_step + 1) <= rot.accuracy* x0(1) && y(rot.t_goal/time_step + 1) >= -rot.accuracy* x0(1));
+            else 
+                error_acc = 1;
+            end
         end
             
         if rot.overshoot ~= 0
@@ -42,14 +63,17 @@ function [i] = FindQR_test(A, B, C, D, w, rot, n, nb_wheel, print, save)
         else 
             error_ov = 1;
         end
+        % if strcmp(rot.name, 'Yaw')
+        %     fprintf("Error acc = %d\n", error_acc);
+        %     fprintf("Error ov = %d\n", error_ov);
+        % end
         % If the solution computed is not fairly accurate and do not 
         % overshoot, the configuration is not retained 
         if error_acc && error_ov 
+            % if strcmp(rot.name, 'Yaw')
+            %     fprintf(">> Configuration found for %s for i = %d.\n",w.name,i);
+            % end
             u = -K*x';
-            % u = abs(u(1));
-            % Définir une matrice
-            % Obtenir la taille de la matrice
-
             [max_value, max_index] = max(u);
             [min_value, min_index] = min(u);
             index = 0 ;
@@ -78,7 +102,7 @@ function [i] = FindQR_test(A, B, C, D, w, rot, n, nb_wheel, print, save)
                 omega =  rot.I*p_n/(2*w.Iw_p*sin(w.beta));
             elseif strcmp(rot.name, 'Yaw')
                 pw    = rot.I*p/(2*(w.Iw_p + w.Iw_r)*cos(w.beta));
-                omega =  rot.I*p_n/(2*w.(w.Iw_p + w.Iw_r)*sin(w.beta));
+                omega =  rot.I*p_n/(2*(w.Iw_p + w.Iw_r)*cos(w.beta));
             end
             % Computation of the maximal power
             voltage_circ    = e -  w.N * sin(w.beta) * p_n + omega;
@@ -157,22 +181,41 @@ function [i] = FindQR_test(A, B, C, D, w, rot, n, nb_wheel, print, save)
         fprintf(">> Roll rate:        %f [V].\n", test);
         
         % Plot of the corresponding motion
-        if 0
-            figure();
-            hold on;
-            grid on;
-            y_plot = plot(t, y_new,'b','linewidth',1);
-            lgd = y_plot; 
+        if plot_figure
+            if strcmp(rot.name, 'Yaw')
+                figure();
+                hold on;
+                grid on;
+                y_plot = plot(t, y,'b','linewidth',1);
+                lgd = y_plot; 
 
-            if rot.accuracy ~= 0
-                ac_h = plot(t, (1 + rot.accuracy) * rad2deg(x0(1))*ones(1, length(t)),'r','linewidth',1);
-                ac_l = plot(t, (1 - rot.accuracy) * rad2deg(x0(1))*ones(1, length(t)),'k','linewidth',1);
-                lgd = [lgd, ac_h, ac_l];
-            end
+                if rot.accuracy ~= 0
+                    ac_h = plot(t, (1 + rot.accuracy) * rad2deg(x0(1))*ones(1, length(t)),'r','linewidth',1);
+                    ac_l = plot(t, (1 - rot.accuracy) * rad2deg(x0(1))*ones(1, length(t)),'k','linewidth',1);
+                    lgd = [lgd, ac_h, ac_l];
+                end
 
-            if rot.overshoot ~= 0
-                ov = plot(t, (1 + rot.overshoot) * rad2deg(x0(1))*ones(1, length(t)),'g','linewidth',1);
-                lgd = [lgd, ov];
+                if rot.overshoot ~= 0
+                    ov = plot(t, (1 + rot.overshoot) * rad2deg(x0(1))*ones(1, length(t)),'g','linewidth',1);
+                    lgd = [lgd, ov];
+                end
+            else
+                            figure();
+                hold on;
+                grid on;
+                y_plot = plot(t, y_new,'b','linewidth',1);
+                lgd = y_plot; 
+
+                if rot.accuracy ~= 0
+                    ac_h = plot(t, (1 + rot.accuracy) * rad2deg(x0(1))*ones(1, length(t)),'r','linewidth',1);
+                    ac_l = plot(t, (1 - rot.accuracy) * rad2deg(x0(1))*ones(1, length(t)),'k','linewidth',1);
+                    lgd = [lgd, ac_h, ac_l];
+                end
+
+                if rot.overshoot ~= 0
+                    ov = plot(t, (1 + rot.overshoot) * rad2deg(x0(1))*ones(1, length(t)),'g','linewidth',1);
+                    lgd = [lgd, ov];
+                end
             end
 
             xlabel('Time [s]', 'Interpreter', 'Latex', 'FontSize', 14);

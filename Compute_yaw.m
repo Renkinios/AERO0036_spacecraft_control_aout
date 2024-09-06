@@ -1,4 +1,4 @@
-function [theta_yaw]= Compute_yaw(T_las,Izz,do_fig,beta,N)
+function [theta_yaw, w0, o0]= Compute_yaw(T_las,Izz,do_fig,beta,N)
 
 Iw = 500; % à changer quand on sait 
 
@@ -18,6 +18,8 @@ T_zz = Izz * r_dot;
 
 w0 = r_las;
 o0 = theta_yaw;
+
+fprintf('The initial angular velocity is %f rad/s and the initial angular position is %f rad\n', w0, o0) ;   
 
 f = @(x) [
     0.5*x(3)*x(4)^2 + w0*x(4) + o0 - x(1);

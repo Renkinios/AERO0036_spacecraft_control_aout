@@ -19,8 +19,8 @@ rho_w      = 8000;                % Stainless steel of density [kg/m³]
 
 % % Thruster parameters
 % Resize the reaction wheel 
-R = 0.101;                       
-N = 169.8485;
+%R = 1;                       
+%N = 50;
 
 
 
@@ -59,7 +59,7 @@ degree_p = 30;       % Rotation to perform [deg]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Yaw %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 T_las = 4*10^3;
-[theta_yaw, w0, o0] = Compute_yaw(T_las,Izz,do_fig,beta,N);
+[theta_yaw, w0, o0] = Compute_yaw(T_las,Izz,do_fig,beta,N,R,print_result);
 
 
 fprintf('The initial angular velocity is %f rad/s and the initial angular position is %f rad\n', w0, o0)
@@ -123,7 +123,7 @@ x_0 = [theta_roll_final,0];
 i_r = FindQR_test(A_roll, B_roll, C_roll, D_roll, w, rot, n, nb_wheel, 1, 1, 1);
 
 Q_roll = [i_r^n,0;0,1];
-R_roll = i_r;
+R_roll = 1/i_r;
 K_roll = lqr(A_roll,B_roll,Q_roll,R_roll); 
 % Forming the closed-loop system
 sys = ss(A_roll-B_roll*K_roll,B_roll,C_roll,D_roll);
@@ -209,3 +209,20 @@ fprintf("Phase margin : %.2f.\n\n",Pm_yaw);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PID controllers %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+[num_r,denom_r] = ss2tf(A_roll,B_roll,C_roll,D_roll);
+H_r = tf(num_r,denom_r);
+H_r_scaled = H_r * 1e4;
+%sisotool(H_r_scaled)
+
+
+[num_p,denom_p] = ss2tf(A_pitch,B_pitch,C_pitch,D_roll);
+H_p = tf(num_p,denom_p);
+H_p_scaled = H_p * 1e4;
+%sisotool(H_p_scaled)
+
+[num_y,denom_y] = ss2tf(A_yaw,B_yaw,C_yaw,D_roll);
+H_y = tf(num_y,denom_y);
+H_y_scaled = H_y * 1e4;
+%sisotool(H_y_scaled)
+

@@ -1,4 +1,4 @@
-function [theta_yaw, w0, o0]= Compute_yaw(T_las,Izz,do_fig,beta,N)
+function [theta_yaw, w0, o0]= Compute_yaw(T_las,Izz,do_fig,beta,N,R,print_result)
 
 Iw = 500; % à changer quand on sait 
 
@@ -8,13 +8,8 @@ r_dot_las = T_las / Izz;
 r_las = r_dot_las * t_las; 
 theta_yaw = 0.5 * r_dot_las * t_las^2 ; 
 
-H_zz_stop = Izz * r_las; 
-
 t_yaw = 5;
-r_dot = (2*(theta_yaw/2))/((t_yaw/2)^2);
-r = r_dot*(t_yaw/2); 
-H_zz = Izz * r;
-T_zz = Izz * r_dot;
+
 
 w0 = r_las;
 o0 = theta_yaw;
@@ -48,28 +43,23 @@ t_yaw_las = 0 : 0.01:t_las;
 t_yaw_recover1 = 0.01:0.01:t1;
 t_yaw_recover2 = 0.01:0.01:t2;
 
-theta_yaw_las = 0.5*r_dot_las*t_yaw_las.^2; 
+ 
 w_yaw_las = r_dot_las*t_yaw_las;
 
-theta_yaw_recover1 = 0.5*a1*t_yaw_recover1.^2 + w0*t_yaw_recover1 + w0;
 w_yaw_recover1 = a1*t_yaw_recover1 + w0;
 
-theta_yaw_recover2 = 0.5*a2*t_yaw_recover2.^2 + w_yaw_recover1(end)*t_yaw_recover2+theta_yaw_recover1(end);
 w_yaw_recover2 = a2*t_yaw_recover2+w_yaw_recover1(end);
 
 t_yaw_plot = 0:0.01:(t_yaw+t_las);
-thetha_yaw = [theta_yaw_las theta_yaw_recover1 theta_yaw_recover2];
 w_yaw = [w_yaw_las w_yaw_recover1 w_yaw_recover2];
 H_yaw = Izz*w_yaw; % [(kg.m^2.rad)/s] Angular momentum
                              
 T_yaw = [ones(1,length(t_yaw_las))*r_dot_las*Izz ones(1,length(t_yaw_recover1))*a1*Izz ones(1,length(t_yaw_recover2))*a2*Izz]; % [N.m] Torque
 
-r_dot_wheel1 = a1*Izz/(4*Iw*cosd(beta));    
-r_dot_wheel2 = a2*Izz/(4*Iw*cosd(beta));
-T_yy_wheel_plot = [ones(1,length(t_yaw_las))*0 ones(1,length(t_yaw_recover1))*r_dot_wheel1*Iw ones(1,length(t_yaw_recover2))*(r_dot_wheel2)*Iw];
-i_yaw = T_yy_wheel_plot/N;  % [A] Current in the wheel
 
-%e_w = (i_yaw)^2*R;
+i_yaw = T_yaw / (4 *N * cos(beta));
+% Définir les valeurs de i_yaw à zéro pour t <= 0.5
+i_yaw(t_yaw_plot <= 0.5) = 0;
 
 if do_fig
     figure
@@ -86,7 +76,9 @@ if do_fig
     width = 6;  % Largeur en pouces
     height = 4; % Hauteur en pouces
     set(gcf, 'Units', 'Inches', 'Position', [0, 0, width, height]);
-
+    
+    ax = gca;
+    ax.YAxis.Exponent = 3;
      % Création du dossier si nécessaire
     folder_path = 'figures/step_1_yaw_';  % Chemin du dossier
     if ~exist(folder_path, 'dir')
@@ -120,7 +112,9 @@ if do_fig
     width = 6;  % Largeur en pouces
     height = 4; % Hauteur en pouces
     set(gcf, 'Units', 'Inches', 'Position', [0, 0, width, height]);
-
+    
+    ax = gca;
+    ax.YAxis.Exponent = 3;
      % Création du dossier si nécessaire
     folder_path = 'figures/step_1_yaw_';  % Chemin du dossier
     if ~exist(folder_path, 'dir')
@@ -143,17 +137,19 @@ if do_fig
     hold on
     stairs(t_yaw_plot, i_yaw, 'linewidth', 2)
     xlabel('Time [s]','interpreter','latex')
-    ylabel('Current [A]','interpreter','latex')
+    ylabel('Electrical current [A]','interpreter','latex')
     
     xlim([0 5.5])  % Définir la limite de l'axe des x
     grid on
     box on
     
+    ax = gca;
+    ax.YAxis.Exponent = 3;
     % Définir la taille de la figure (en pouces)
     width = 6;  % Largeur en pouces
     height = 4; % Hauteur en pouces
     set(gcf, 'Units', 'Inches', 'Position', [0, 0, width, height]);
-
+    
      % Création du dossier si nécessaire
     folder_path = 'figures/step_1_yaw_';  % Chemin du dossier
     if ~exist(folder_path, 'dir')
@@ -169,6 +165,28 @@ if do_fig
     % Sauvegarder la figure en PDF avec un ajustement optimal
     print(gcf, save_path, '-dpdf', '-r0');
     
+end
+% Trouver la valeur de i_yaw à t = 0.5
+t_value = 0.52;
+index = (t_value / 0.01) + 1; % Calcul de l'index
+i_yaw_at_0_5 = i_yaw(index); % Valeur de i_yaw à t = 0.5
+
+voltage = i_yaw * R;
+voltage_t05 = voltage(index) / 1000;
+%max current
+i_max = max(abs(i_yaw));
+voltage_max = i_max * R;
+voltage_max = voltage_max / 1000; %  [kV]
+
+power_max = voltage_max * i_max;
+power_max = power_max / 1000; % [MW]
+
+if print_result
+    fprintf('>>------------Yaw-----------<<\n');
+    fprintf('>> Current at t = 0.5: %f [A] \n', i_yaw_at_0_5);
+    fprintf('>> Voltage at t = 0: %f [KV] \n', voltage_t05);
+    fprintf('>> Max voltage: %f [KV] \n', voltage_max);
+    fprintf('>> Max power: %f [MW] \n', power_max);
 end
 
 end

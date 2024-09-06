@@ -19,7 +19,6 @@ p_dot = delta_theta * 2/delta_t^2;          % Scalar angular acceleration of the
 T     = Iyy * p_dot;                        % Scalar torque of the spacecraft (constant) [Nm], first phase
 H_max = T * time/2;                         % Scalar maximum angular momentum of the Wheels/spacecraft [Nm·s], first phase
 
-fprintf("H_max : %f \n",H_max);
 
 w_max_Rspeed = Omega_max * 2 * pi / 60;            % Maximum angular speed of the reaction wheel [rad/s]
 Omega_dot    = Omega_max * 2 * pi / (60 * time/2); % Scalar wheel angular acceleration (constant) [rad/s²], first phase
@@ -41,7 +40,9 @@ if graph
     plot(t, H, 'LineWidth', 2);
     xlabel('Time [s]', 'Interpreter', 'latex');  % Utilisation de LaTeX pour l'axe des x
     ylabel('Angular momentum [Nm $\cdot$ s]', 'Interpreter', 'latex');  % Utilisation de LaTeX pour l'axe des y
-    % grid on;
+    grid on;
+    
+    hold off;
     
     % Définir le chemin du dossier et le créer s'il n'existe pas
     folder_path = 'figures/step_1_pitch';
@@ -72,11 +73,7 @@ if graph
     xlabel('Time [s]', 'Interpreter', 'latex');  % Utilisation de LaTeX pour l'axe des x
     ylabel('Torque [Nm]', 'Interpreter', 'latex');  % Utilisation de LaTeX pour l'axe des y
     grid on;
-    
-    % Définir la taille de la figure (en pouces)
-    width = 6;  % Largeur en pouces
-    height = 4; % Hauteur en pouces
-    set(gcf, 'Units', 'Inches', 'Position', [0, 0, width, height]);
+    hold off;
     
     % Définir le chemin du dossier et le créer s'il n'existe pas
     folder_path = 'figures/step_1_pitch';
@@ -84,14 +81,17 @@ if graph
         mkdir(folder_path);
     end
     
-    % Définir le chemin complet pour le fichier PDF
+   % Définir le chemin complet pour le fichier PDF
     save_path = fullfile(folder_path, 'torque_plot.pdf');
     
     % Ajuster les propriétés de la figure et du papier pour une meilleure sauvegarde
-    set(gcf, 'PaperPositionMode', 'Auto', 'PaperUnits', 'Inches', 'PaperSize', [width, height]);
+    set(gcf, 'Units', 'Inches');
+    pos = get(gcf, 'Position');
+    set(gcf, 'PaperPositionMode', 'auto');
+    set(gcf, 'PaperUnits', 'Inches', 'PaperSize', [pos(3), pos(4)]);
     
-    % Sauvegarder la figure en PDF avec un ajustement optimal
-    print(gcf, save_path, '-dpdf', '-r0');
+    % Sauvegarder la figure en PDF
+    print(gcf, save_path, '-dpdf', '-bestfit');
 end
 
 
@@ -112,42 +112,7 @@ omega4_t1 = -omega2_t1;             % Wheel angular velocity during the first ph
 omega4_t2 = -omega2_t2;             % Wheel angular velocity during the second phase [rad/s]
 Omega_4   = [omega4_t1, omega4_t2]; % Wheel angular velocity during the roll [rad/s]
 
-if print_result
-    fprintf('>>-----------Pitch-----------<<\n')
-    fprintf('>> T:                %f [Nm]    \n',T);
-    fprintf('>> H_max:            %f [Nms]   \n',H_max);
-    fprintf('>> w_max_Rspeed:     %f [rad/s] \n',w_max_Rspeed);
-    fprintf('>> Iw:               %f [kgm^2] \n',Iw_pitch);
-end
 
-if graph 
-    figure;
-    hold on;
-    grid on;
-    plot(t, Omega_2, 'b', 'LineWidth', 1);
-    xlabel('Time [s]', 'Interpreter', 'latex', 'FontSize', 14);
-    ylabel('Wheel rotation speed [rad/s]', 'Interpreter', 'latex', 'FontSize', 14);
-    
-    % Définir la taille de la figure (en pouces)
-    width = 6;  % Largeur en pouces
-    height = 4; % Hauteur en pouces
-    set(gcf, 'Units', 'Inches', 'Position', [0, 0, width, height]);
-
-    % Définir le chemin du dossier et le créer s'il n'existe pas
-    folder_path = 'figures/step_1_pitch';  % Path to the folder
-    if ~exist(folder_path, 'dir')
-        mkdir(folder_path);  % Create the folder if it does not exist
-    end
-    
-    % Définir le chemin complet pour le fichier PDF
-    save_path = fullfile(folder_path, 'angular_velocity_wheel_1_plot.pdf');
-    
-    % Ajuster la position et la taille du papier pour s'adapter à la figure
-    set(gcf, 'PaperPositionMode', 'Auto', 'PaperUnits', 'Inches', 'PaperSize', [width, height]);
-    
-    % Sauvegarder la figure en PDF
-    print(gcf, save_path, '-dpdf', '-r0');  % Sauvegarder la figure en PDF
-end
 
 % Electrical current profile : 
 Qf2 = -c *( sin(beta) * p - Omega_2) ; 
@@ -172,22 +137,33 @@ voltage_circ = max_v - N*(sin(beta)*p(index) - Omega_2(index));
 % fprintf(">>voltage_circ in roll : %f [kV] \n",abs(voltage_circ)/1000);
 
 max_power = (voltage_circ)^2/R/10^6;
-if print_result
-    fprintf('>> Maximum voltage in Pitch : %f [KV] \n',abs(max_v/10^3));
-    fprintf('>> Maximum power in Pitch   : %f [MW] \n',max_power);
-end
+
+
+
+
+%======================%
+        %Modif%
+%======================%
+i = T_vec / (2*N*sin(beta));
+voltage = i * R;
+voltage_t0 = voltage(1) / 1000;
+%max current
+i_max = max(abs(i));
+voltage_max = i_max * R;
+voltage_max = voltage_max / 1000; %  [kV]
+
+power_max = voltage_max * i_max;
+power_max = power_max / 1000; % [MW]
+
 
 if graph 
     figure;
     hold on;
     grid on;
-    yyaxis left;
-    plot(t, i2, 'b', 'LineWidth', 2);
-    ylabel('Current [A]', 'Interpreter', 'latex', 'FontSize', 14);
-    yyaxis right;
-    plot(t, e2, 'r', 'LineWidth', 2);
-    ylabel('Voltage [V]', 'Interpreter', 'latex', 'FontSize', 14);
-    xlabel('Time [s]', 'Interpreter', 'latex', 'FontSize', 14);
+   
+    plot(t, i, 'LineWidth', 2);
+    ylabel('Electrical current [A]', 'Interpreter', 'latex');
+    xlabel('Time [s]', 'Interpreter', 'latex');
     hold off;
     folder_path = 'figures/step_1_pitch';  % Path to the folder
     if ~exist(folder_path, 'dir')
@@ -199,5 +175,18 @@ if graph
     set(gcf, 'PaperPositionMode', 'auto');
     set(gcf, 'PaperUnits', 'Inches', 'PaperSize', [pos(3), pos(4)]);
     print(gcf, save_path, '-dpdf', '-bestfit');
+end
+
+
+if print_result
+    fprintf('>>-----------Pitch-----------<<\n')
+    fprintf('>> T:                %f [Nm]    \n',T);
+    fprintf('>> H_max:            %f [Nms]   \n',H_max);
+    fprintf('>> w_max_Rspeed:     %f [rad/s] \n',w_max_Rspeed);
+    fprintf('>> Iw:               %f [kgm^2] \n',Iw_pitch);
+    fprintf('>> Current at t = 0: %f [A] \n', i(1));
+    fprintf('>> Voltage at t = 0: %f [KV] \n', voltage_t0);
+    fprintf('>> Max voltage: %f [KV] \n', voltage_max);
+    fprintf('>> Max power: %f [MW] \n', power_max);
 end
 end
